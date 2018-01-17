@@ -17,6 +17,16 @@
 
 //#define parseEach(template_str,parser) while(parseCount(template_str)){parser;} parseLine(closeXml(template_str));
 
+std::string flattenVecStr(vec_str_t vecStr, std::string separetor){
+	std::string result;
+	for(size_t i=0; i<vecStr.size(); i++){
+		result.append(vecStr[i]);
+		if(i+1<vecStr.size() && vecStr[i] != "") result.append(separetor);
+	}
+	return result;
+}
+
+
 CppnParser::CppnParser(std::string stdFileName):data_version(""), line(""), nextLine(true), lineNumber(0), parseCounter(0){
     dbg::trace trace("parser", DBG_HERE);
     QString qFileName(stdFileName.c_str());
@@ -189,6 +199,8 @@ std::string CppnParser::parseParameter(const std::string& line, std::string::ite
 
 bool CppnParser::parseLine(std::string line, std::string expected){
     dbg::trace trace("parser", DBG_HERE);
+//    std::cout << line << " : " << expected << std::endl;
+    bool store;
 	m.clear();
 	m.push_back(""); //Filler
 	std::string::iterator currentChar = line.begin();
@@ -196,13 +208,239 @@ bool CppnParser::parseLine(std::string line, std::string expected){
 	parseWhiteSpace(currentChar);
 
 	parseExpected(line, currentChar, expected, expectedChar);
-	while((*expectedChar)=='*'){
+	while((*expectedChar)=='*' or (*expectedChar)=='\\'){
+		if((*expectedChar)=='\\'){
+			store=false;
+		} else{
+			store=true;
+		}
 		expectedChar++;
-		m.push_back(parseParameter(line, currentChar, expectedChar));
+		if(store){
+			m.push_back(parseParameter(line, currentChar, expectedChar));
+		} else {
+			parseParameter(line, currentChar, expectedChar);
+		}
 		parseExpected(line, currentChar, expected, expectedChar);
 	}
 
 	return expectedChar == expected.end();
+}
+
+
+bool CppnParser::parseAtt(const str_it_t& end, str_it_t& it, std::string& r){
+    dbg::trace trace("parser", DBG_HERE);
+    const std::string q = "= />";
+    r.clear();
+    parseWhiteSpace(end, it);
+	while(it != end and q.find_first_of(*it) == std::string::npos){
+		r.append(1, (*it));
+		++it;
+	}
+	return r != "";
+}
+
+bool CppnParser::parseAttV(const str_it_t& end, str_it_t& it, std::string& r){
+	const std::string q = "\"\'";
+	r.clear();
+	parseWhiteSpace(end, it);
+	if(!parseChar(end, it, '=')) return false;
+	parseWhiteSpace(end, it);
+	if(!parseChar(end, it, q)) return false;
+	while(it != end && q.find_first_of(*it) == std::string::npos){
+		r.append(1, *it);
+		it++;
+	}
+	return parseChar(end, it, q);
+}
+
+// FIXME: This writing to "m" is kind of horrible practice.
+bool CppnParser::parseContent(const str_it_t& end, str_it_t& it){
+	m[0] = "";
+	while(it != end && *it != '<'){
+		m[0].append(1, *it);
+		it++;
+	}
+	return it != end;
+}
+
+bool CppnParser::parseWhiteSpace(const str_it_t& end, str_it_t& it){
+    dbg::trace trace("parser", DBG_HERE);
+	while((*it) == ' ' and it!=end) it++;
+	return it!=end;
+}
+
+bool CppnParser::parseChar(const str_it_t& end, str_it_t& it, const char c){
+	if(*it != c or it == end) return false;
+	++it;
+	return true;
+}
+
+bool CppnParser::parseChar(const str_it_t& end, str_it_t& it, const std::string c){
+	if(c.find_first_of(*it) == std::string::npos or it == end) return false;
+	++it;
+	return true;
+}
+
+bool CppnParser::parseStr(const str_it_t& end, str_it_t& it, const std::string str){
+    dbg::trace trace("parser", DBG_HERE);
+    std::string::const_iterator expectedChar = str.begin();
+	while(it != end && expectedChar != str.end()){
+		if((*it)!=(*expectedChar)) return false;
+		it++;
+		expectedChar++;
+	}
+	return expectedChar == str.end();
+}
+
+CppnParser::parse_result_t CppnParser::parseTag(const str_it_t& end, str_it_t& it, const vec_str_t& tag){
+	std::string name = tag[0];
+	m.resize(tag.size());
+	m[0] = "";
+
+	// Parse opening bracket
+	std::cout << "Parsing opening bracket" << std::endl;
+	parseWhiteSpace(end, it);
+	if(!parseChar(end, it, '<')) return parseFailed;
+
+	// Parse the name of the tag
+	std::cout << "Parsing tag name" << std::endl;
+	parseWhiteSpace(end, it);
+	if(!parseStr(end, it, name)) return parseFailed;
+
+	// Parse the attributes
+	std::cout << "Parsing attributes" << std::endl;
+	std::string attribute;
+	size_t is=1;
+	bool found=false;
+	while(parseAtt(end, it, attribute)){
+		std::cout << "Attribute parsed: \"" << attribute << "\"" << std::endl;
+		found=false;
+		for(size_t i=is; i<tag.size() && !found; ++i){
+			if(attribute == tag[i]){
+				std::cout << "Attribute found!" << std::endl;
+				if(i == is) ++is;
+				if(!parseAttV(end, it, m[i])) return parseFailed;
+				found=true;
+			}
+		}
+		if(!found){
+			std::cout << "Attribute not found" << std::endl;
+			return parseFailed;
+		}
+	}
+
+	// Parse end of tag
+	std::cout << "Parsing end of tag" << std::endl;
+	parseWhiteSpace(end, it);
+	if(parseChar(end, it, '/')){
+		if(!parseChar(end, it, '>')) return parseFailed;
+		return tagIsEmpty;
+	} else{
+		if(!parseChar(end, it, '>')) return parseFailed;
+		return tagHasContent;
+	}
+}
+
+
+bool CppnParser::parseTagClose(const str_it_t& end, str_it_t& it, const vec_str_t& tag){
+	std::string name = tag[0];
+	parseWhiteSpace(end, it);
+	if(!parseChar(end, it, '<')) return false;
+	if(!parseChar(end, it, '/')) return false;
+	parseWhiteSpace(end, it);
+	if(!parseStr(end, it, name)) return false;
+	parseWhiteSpace(end, it);
+	return parseChar(end, it, '>');
+}
+
+
+bool CppnParser::parseXmlLine(const vec_str_t& tag, mode_t mode, bool stopOnFail){
+    dbg::trace trace("parser", DBG_HERE);
+	if(!myfile->good()) throw CeParseException("Unexpected end of file.");
+	if(nextLine){
+		getline (*myfile,line);
+		lineNumber++;
+	}
+
+	std::cout << "PARSING LINE: "<< line << std::endl;
+
+	str_it_t it = line.begin();
+	str_it_t end = line.end();
+	bool success=false;
+	parse_result_t pr = parseFailed;
+	m.clear();
+	switch(mode){
+	case tagOpen:
+		success = (parseTag(end, it, tag) != parseFailed);
+		break;
+	case tagClose:
+		success = parseTagClose(end, it, tag);
+		break;
+	case tagOpenClose:
+		pr = parseTag(end, it, tag);
+		if(pr == tagHasContent){
+			success = parseContent(end, it);
+			if(success) success = parseTagClose(end, it, tag);
+		} else {
+			success = (pr != parseFailed);
+		}
+		break;
+	default:
+		throw CeParseException("Parse error on line: " +
+				util::toString(lineNumber) + ".\nRead: "+ line +
+				"\nExpected: " + flattenVecStr(tag));
+		break;
+	}
+	if(success){
+		nextLine=true;
+	} else if(!stopOnFail) {
+		nextLine=false;
+	} else {
+		throw CeParseException("Parse error on line: " +
+				util::toString(lineNumber) + ".\nRead: "+ line +
+				"\nExpected: "  + flattenVecStr(tag));
+	}
+
+	return nextLine;
+}
+
+
+bool CppnParser::parseXmlLineFull(const vec_str_t& tag,
+		mode_t mode,
+		bool stopOnFail,
+		std::vector<std::string> &tokens,
+		size_t index,
+		std::string defaultValue,
+		std::string separetor,
+		std::string minVersion,
+		std::string maxVersion)
+{
+	dbg::trace trace("parser", DBG_HERE);
+	bool success = true;
+	if (data_version >= minVersion && data_version <=maxVersion){
+		std::string result = "";
+		success = parseXmlLine(tag, mode, stopOnFail);
+		if(success){
+			result = flattenVecStr(m, separetor);
+//			for(size_t i=1; i<m.size(); i++){
+//				result.append(m[i]);
+//				if(i+1<m.size()) result.append(separetor);
+//			}
+		}else{
+			result = defaultValue;
+		}
+
+		//		if(result == "") result = "\"\"";
+		tokens[index] = result;
+	}else{
+		//		std::cout << "IGNORING LINE DUE TO VERSION NUMBER" << std::endl;
+		//		std::cout << "data_version: <" << data_version << ">" << std::endl;
+		//		std::cout << "minVersion: <" << minVersion << "> : " << (data_version >= minVersion) << std::endl;
+		//		std::cout << "maxVersion: <" << maxVersion << "> : " << (data_version <= maxVersion) << std::endl;
+
+		if(tokens[index]=="") tokens[index] = defaultValue;
+	}
+	return success;
 }
 
 bool CppnParser::parseLine(std::string regex, bool stopOnFail){
@@ -245,6 +483,8 @@ bool CppnParser::parseLine(std::vector<std::string> regex, bool stopOnFail){
     return success;
 }
 
+
+
 //void CppnParser::parseLine(std::string regex){
 ////	std::cout << "Parsing line: " << util::toString(lineNumber) << " regex: " << regex <<std::endl;
 //	if(!myfile->good()) throw CeParseException("Unexpected end of file.");
@@ -259,13 +499,22 @@ bool CppnParser::parseLine(std::vector<std::string> regex, bool stopOnFail){
 //	}
 //}
 
-void CppnParser::parseLine(std::string regex, bool stopOnFail, std::vector<std::string> &tokens, size_t index, std::string defaultValue, std::string separetor, std::string minVersion, std::string maxVersion){
+bool CppnParser::parseLine(std::string regex,
+		bool stopOnFail,
+		std::vector<std::string> &tokens,
+		size_t index,
+		std::string defaultValue,
+		std::string separetor,
+		std::string minVersion,
+		std::string maxVersion)
+{
     dbg::trace trace("parser", DBG_HERE);
 //	std::cout << "Parsing line: " << util::toString(lineNumber) << " regex: " << regex << " index: " << index << " of: " << tokens.size() << " default: \"" <<  defaultValue << "\" curVersion: " << data_version << " minVersion: " << minVersion << " maxVersion: " << maxVersion <<std::endl;
-
+    bool success = true;
 	if (data_version >= minVersion && data_version <=maxVersion){
 		std::string result;
-		if(parseLine(regex, stopOnFail)){
+		success = parseLine(regex, stopOnFail);
+		if(success){
 			for(size_t i=1; i<m.size(); i++){
 				result.append(m[i]);
 				if(i+1<m.size()) result.append(separetor);
@@ -277,8 +526,14 @@ void CppnParser::parseLine(std::string regex, bool stopOnFail, std::vector<std::
 //		if(result == "") result = "\"\"";
 		tokens[index] = result;
 	}else{
+//		std::cout << "IGNORING LINE DUE TO VERSION NUMBER" << std::endl;
+//		std::cout << "data_version: <" << data_version << ">" << std::endl;
+//		std::cout << "minVersion: <" << minVersion << "> : " << (data_version >= minVersion) << std::endl;
+//		std::cout << "maxVersion: <" << maxVersion << "> : " << (data_version <= maxVersion) << std::endl;
+
 		if(tokens[index]=="") tokens[index] = defaultValue;
 	}
+	return success;
 }
 
 void CppnParser::copyTo(std::vector<std::string> &tokens, size_t from, size_t to, std::string fromSeparetor, std::string toSeparetor, std::string minVersion, std::string maxVersion){
@@ -315,10 +570,15 @@ void CppnParser::toStream(std::vector<std::string> &tokens, std::iostream &strea
 void CppnParser::parseHeader(std::vector<std::string> &tokens){
     dbg::trace trace("parser", DBG_HERE);
 	data_version = "0.0";
-	if(!parseLine(ce_xml::getFirstLine(), false)) parseLine("<?xml*?>");
-	parseLine(readXml(ce_xml::cppn_data), false, tokens, cppnxDataVersion, "0.0");
-	parseLine(openXml(ce_xml::data), false, tokens, picBreederDataVersion, "1.0");
+	if(!parseLine(ce_xml::getFirstLine(), false)) parseLine("<?xml*?>", false);
+	bool dataFound = parseXmlLineFull(ce_xml::cppn_data_v, tagOpen, false, tokens, cppnxDataVersion, "0.0");
+	//parseLine(openXml(ce_xml::data), false, tokens, picBreederDataVersion, "1.0");
+	parseXmlLineFull(ce_xml::data_v, tagOpen, false, tokens, picBreederDataVersion, "1.0");
+	if(!dataFound){
+		parseXmlLineFull(ce_xml::cppn_data_v, tagOpen, false, tokens, cppnxDataVersion, "0.0");
+	}
 	data_version = tokens[cppnxDataVersion];
+	std::cout << "DATA VERSION: <" << data_version << ">" << std::endl;
 }
 
 void CppnParser::parseNodeView(bool store){
@@ -326,9 +586,9 @@ void CppnParser::parseNodeView(bool store){
 	std::stringstream stream;
 	std::vector<std::string> tokens(nodeviewSize);
 
-	parseLine(openXml(ce_xml::nodeview));
-	parseLine(readXml(ce_xml::identifier), true,tokens, nodeviewIdentifier);
-	parseLine(closeXml(ce_xml::nodeview));
+	parseXmlLine(ce_xml::nodeview_v, tagOpen);
+	parseXmlLineFull(ce_xml::identifier_v, tagOpen, true,tokens, nodeviewIdentifier);
+	parseXmlLine(ce_xml::nodeview_v, tagClose);
 	toStream(tokens, stream);
 
 	if(store){
@@ -350,11 +610,17 @@ void CppnParser::parseColorButton(bool store){
 	std::stringstream stream;
 	std::vector<std::string> tokens(labelSize);
 
-	parseLine(openXml(ce_xml::color_button));
-	parseLine(readXml(ce_xml::color_label), true,tokens, labelid, "", " ", "1.1");
-	parseLine(openCloseXml(ce_xml::text), true,tokens, labelname, "\"\"");
-	parseLine(readXml(ce_xml::color), true,tokens, rgb, "255 255 255");
-	parseLine(closeXml(ce_xml::color_button));
+	parseXmlLine(ce_xml::color_button_v, tagOpen);
+	parseXmlLineFull(ce_xml::color_label_v, tagOpen, true,tokens, labelid, "", " ", "1.1");
+	parseXmlLineFull(ce_xml::text_v, tagOpenClose, true,tokens, labelname, "\"\"");
+	parseXmlLineFull(ce_xml::color_v, tagOpen, true,tokens, rgb, "255 255 255");
+	parseXmlLine(ce_xml::color_button_v, tagClose);
+
+//	parseLine(openXml(ce_xml::color_button));
+//	parseLine(readXml(ce_xml::color_label), true,tokens, labelid, "", " ", "1.1");
+//	parseLine(openCloseXml(ce_xml::text), true,tokens, labelname, "\"\"");
+//	parseLine(readXml(ce_xml::color), true,tokens, rgb, "255 255 255");
+//	parseLine(closeXml(ce_xml::color_button));
 	copyTo(tokens, rgb, labelid, " ", "_", "1.0", "1.0");
 	tokens[labelname] = "\"" + tokens[labelname] + "\"";
 
@@ -375,23 +641,25 @@ void CppnParser::parseNode(bool store){
 	std::stringstream stream;
 	std::vector<std::string> tokens(nodeSize);
 
-	if(parseLine(openXml(ce_xml::node), false)){
+	if(parseXmlLine(ce_xml::node_v, tagOpen, false)){
 		tokens[affinity] = "grey";
 		tokens[bias] = "0.0";
 		tokens[special] = "";
 		tokens[type] = m[1];
-	} else if(parseLine(openXml(ce_xml::ionode), false)){
+
+	} else if(parseXmlLine(ce_xml::ionode_v, tagOpen, false)){
 		tokens[affinity] = "grey";
 		tokens[bias] = "0.0";
 		tokens[special] = m[1];
 		tokens[type] = m[2];
-	} else if(parseLine(openXml(ce_xml::colornode), false)){
+
+	} else if(parseXmlLine(ce_xml::colornode_v, tagOpen, false)){
 		tokens[affinity] = m[1];
 		tokens[bias] = m[2];
 		tokens[special] = "";
 		tokens[type] = m[3];
 	} else{
-		parseLine(openXml(ce_xml::iocolornode));
+		parseXmlLine(ce_xml::iocolornode_v, tagOpen);
 		tokens[affinity]  = m[1];
 		tokens[bias] = m[2];
 		tokens[special] = m[3];
@@ -402,16 +670,26 @@ void CppnParser::parseNode(bool store){
 	if(tokens[bias] == "") tokens[bias] = "0.0";
 	if(tokens[type] == "") tokens[type] = "hidden";
 
-	parseLine(readXml(ce_xml::marking), true, tokens, nodeIdentifier);
-	parseLine(openCloseXml(ce_xml::activation), true, tokens, activationFunction);
-	parseLine(readXml(ce_xml::color), true, tokens, nodeLabel,"255_255_255", "_", "1.0", "1.0");
-	parseLine(readXml(ce_xml::color_label), true, tokens, nodeLabel,"","", "1.1");
-	parseLine(readXml(ce_xml::position), true, tokens, position,"0.0 0.0", " ", "1.0");
-	parseLine(openCloseXml(ce_xml::text), true, tokens, nodeNote,"", " ", "1.1");
-	parseLine(closeXml(ce_xml::node));
+	parseXmlLineFull(ce_xml::marking_v, tagOpen, true, tokens, nodeIdentifier);
+	parseXmlLineFull(ce_xml::activation_v, tagOpenClose, true, tokens, activationFunction);
+	parseXmlLineFull(ce_xml::color_v, tagOpen, true, tokens, nodeLabel,"255_255_255", "_", "1.0", "1.0");
+	parseXmlLineFull(ce_xml::color_label_v, tagOpen, true, tokens, nodeLabel,"","", "1.1");
+	parseXmlLineFull(ce_xml::position_v, tagOpen, true, tokens, position,"0.0 0.0", " ", "1.0");
+	parseXmlLineFull(ce_xml::text_v, tagOpenClose, true, tokens, nodeNote,"", " ", "1.1");
+	parseXmlLine(ce_xml::node_v, tagClose);
+
+//	parseLine(readXml(ce_xml::marking), true, tokens, nodeIdentifier);
+//	parseLine(openCloseXml(ce_xml::activation), true, tokens, activationFunction);
+//	parseLine(readXml(ce_xml::color), true, tokens, nodeLabel,"255_255_255", "_", "1.0", "1.0");
+//	parseLine(readXml(ce_xml::color_label), true, tokens, nodeLabel,"","", "1.1");
+//	parseLine(readXml(ce_xml::position), true, tokens, position,"0.0 0.0", " ", "1.0");
+//	parseLine(openCloseXml(ce_xml::text), true, tokens, nodeNote,"", " ", "1.1");
+//	parseLine(closeXml(ce_xml::node));
 
 	tokens[special] = "\"" + tokens[special] + "\"";
 	tokens[nodeNote] = "\"" + tokens[nodeNote] + "\"";
+
+	std::cout << "Tokens read: " << flattenVecStr(tokens) << std::endl;
 
 	toStream(tokens, stream);
 //	std::cout << stream.str() << std::endl;
@@ -435,18 +713,31 @@ void CppnParser::parseEdge(bool store){
 	std::stringstream stream;
 	std::vector<std::string> tokens(edgeSize);
 
+	parseXmlLine(ce_xml::link_v, tagOpen);
+	parseXmlLineFull(ce_xml::marking_v, tagOpen, true, tokens, marking);
+	parseXmlLineFull(ce_xml::source_v, tagOpen, true, tokens, source, "", "_");
+	parseXmlLineFull(ce_xml::target_v, tagOpen, true, tokens, target, "", "_");
+	parseXmlLineFull(ce_xml::weight_v, tagOpenClose, true, tokens, weight);
+	parseXmlLineFull(ce_xml::color_v, tagOpen, true, tokens, label, "empty", "_", "1.0", "1.0");
+	parseXmlLineFull(ce_xml::original_weight_v, tagOpen, true, tokens, originalWeight, tokens[weight], " ", "1.1");
+	parseXmlLineFull(ce_xml::color_label_v, tagOpen, true, tokens, label, "", "", "1.1");
+	parseXmlLineFull(ce_xml::text_v, tagOpenClose, true, tokens, note, "\"\"", "", "1.1");
+	parseXmlLineFull(ce_xml::bookends_v, tagOpen, true, tokens, bookends, "-3.0 3.0 0.1", " ", "1.2");
+	parseXmlLine(ce_xml::link_v, tagClose);
+
+
 	//Parse first line
-	parseLine(openXml(ce_xml::link));
-	parseLine(readXml(ce_xml::marking), true,tokens, marking);
-	parseLine(readXml(ce_xml::source), true,tokens, source, "", "_");
-	parseLine(readXml(ce_xml::target), true,tokens, target, "", "_");
-	parseLine(openCloseXml(ce_xml::weight), true,tokens, weight);
-	parseLine(readXml(ce_xml::color), true,tokens, label, "empty", "_", "1.0", "1.0");
-	parseLine(openCloseXml(ce_xml::original_weight), true,tokens, originalWeight, tokens[weight], " ", "1.1");
-	parseLine(readXml(ce_xml::color_label), true,tokens, label, "", "", "1.1");
-	parseLine(openCloseXml(ce_xml::text), true,tokens, note, "\"\"", "", "1.1");
-	parseLine(readXml(ce_xml::bookends), true,tokens, bookends, "-3.0 3.0 0.1", " ", "1.2");
-	parseLine(closeXml(ce_xml::link));
+//	parseLine(openXml(ce_xml::link));
+//	parseLine(readXml(ce_xml::marking), true,tokens, marking);
+//	parseLine(readXml(ce_xml::source), true,tokens, source, "", "_");
+//	parseLine(readXml(ce_xml::target), true,tokens, target, "", "_");
+//	parseLine(openCloseXml(ce_xml::weight), true,tokens, weight);
+//	parseLine(readXml(ce_xml::color), true,tokens, label, "empty", "_", "1.0", "1.0");
+//	parseLine(openCloseXml(ce_xml::original_weight), true,tokens, originalWeight, tokens[weight], " ", "1.1");
+//	parseLine(readXml(ce_xml::color_label), true,tokens, label, "", "", "1.1");
+//	parseLine(openCloseXml(ce_xml::text), true,tokens, note, "\"\"", "", "1.1");
+//	parseLine(readXml(ce_xml::bookends), true,tokens, bookends, "-3.0 3.0 0.1", " ", "1.2");
+//	parseLine(closeXml(ce_xml::link));
 
 	tokens[note] = "\"" + tokens[note] + "\"";
 
@@ -459,17 +750,27 @@ void CppnParser::parseEdge(bool store){
 
 void CppnParser::parseParent(bool store){
     dbg::trace trace("parser", DBG_HERE);
-	parseLine(readXml(ce_xml::identifier));
+    parseXmlLine(ce_xml::identifier_v, tagOpen);
+	//parseLine(readXml(ce_xml::identifier));
 	if(store) fileInformation->addParent(m[1], m[2]);
 }
 
 void CppnParser::parseGenome(bool store, std::vector<std::string> &tokens){
     dbg::trace trace("parser", DBG_HERE);
-	parseLine(openXml(ce_xml::genome), false, tokens, genome, "unknown");
-	tokens[genome] = tokens[genome] + " grey";
-	parseLine(openXml(ce_xml::genomePhen), false, tokens, genome, "unknown grey");
-	parseLine(readXml(ce_xml::identifier), true, tokens, genomeIdentifier, "unknown unknown");
+
+    parseXmlLineFull(ce_xml::genome_v, tagOpen, false, tokens, genome, "unknown");
+    tokens[genome] = tokens[genome] + " grey";
+    parseXmlLineFull(ce_xml::genomePhen_v, tagOpen, false, tokens, genome, "unknown grey");
+    parseXmlLineFull(ce_xml::identifier_v, tagOpen, true, tokens, genomeIdentifier, "unknown unknown");
+
+//  parseLine(openXml(ce_xml::genome), false, tokens, genome, "unknown");
+//	tokens[genome] = tokens[genome] + " grey";
+//	parseLine(openXml(ce_xml::genomePhen), false, tokens, genome, "unknown grey");
+//	parseLine(readXml(ce_xml::identifier), true, tokens, genomeIdentifier, "unknown unknown");
+
 	//Set parents
+
+    //TODO: Conversion to new parser
 	if(!parseLine(readXml(ce_xml::parent_count), false)){
 		parseEach(ce_xml::parent_count, parseParent(store));
 	}
@@ -485,11 +786,14 @@ void CppnParser::parseGenome(bool store, std::vector<std::string> &tokens){
 		parseEach(ce_xml::nodeviews_count, parseNodeView(store));
 	}
 
-	parseLine(closeXml(ce_xml::genome));
+	parseXmlLine(ce_xml::genome_v, tagClose);
+
+//	parseLine(closeXml(ce_xml::genome));
 }
 
 
 void CppnParser::parse(int generation){
+	//TODO: Conversion to new parser
     dbg::trace trace("parser", DBG_HERE);
     dbg::out(dbg::info, "parser") << "Parsing file" << std::endl;
 

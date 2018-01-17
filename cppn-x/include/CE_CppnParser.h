@@ -45,11 +45,27 @@
 
 
 typedef std::map<std::string, std::string> io_map_t;
+typedef std::string::iterator str_it_t;
+typedef std::vector<std::string> vec_str_t;
+typedef std::string str_t;
 
+std::string flattenVecStr(vec_str_t vecStr, std::string separetor=" ");
 
 class CppnParser
 {
 public:
+	enum mode_t{
+		tagOpen,
+		tagClose,
+		tagOpenClose
+	};
+
+	enum parse_result_t{
+		tagHasContent,
+		tagIsEmpty,
+		parseFailed
+	};
+
 	CppnParser(std::string fileName);
 	virtual ~CppnParser();
 
@@ -167,7 +183,36 @@ private:
 	bool parseLine(std::string regex, bool stopOnFail = true);
 	bool parseLine(std::vector<std::string> regex, bool stopOnFail = true);
 //	bool tryParseLine(std::string regex);
-	void parseLine(std::string regex, bool stopOnFail, std::vector<std::string> &tokens, size_t index, std::string defaultValue = "", std::string separetor = " ", std::string minVersion = "0.0", std::string maxVersion = "1.2");
+	bool parseLine(std::string regex,
+			bool stopOnFail,
+			std::vector<std::string> &tokens,
+			size_t index,
+			std::string defaultValue = "",
+			std::string separetor = " ",
+			std::string minVersion = "0.0",
+			std::string maxVersion = "1.2");
+
+	// New set of parser commands
+	bool parseChar(const str_it_t& end, str_it_t& it, const char c);
+	bool parseChar(const str_it_t& end, str_it_t& it, const std::string c);
+	bool parseStr(const str_it_t& end, str_it_t& it, const std::string str);
+	bool parseWhiteSpace(const str_it_t& end, str_it_t& it);
+	bool parseAtt(const str_it_t& end, str_it_t& it, std::string& r);
+	bool parseAttV(const str_it_t& end, str_it_t& it, std::string& r);
+	bool parseContent(const str_it_t& end, str_it_t& it);
+	parse_result_t parseTag(const str_it_t& end, str_it_t& it, const vec_str_t& tag);
+	bool parseTagClose(const str_it_t& end, str_it_t& it, const vec_str_t& tag);
+	bool parseXmlLine(const vec_str_t& tag, mode_t mode, bool stopOnFail=true);
+	bool parseXmlLineFull(const vec_str_t& tag,
+			mode_t mode,
+			bool stopOnFail,
+			std::vector<std::string> &tokens,
+			size_t index,
+			std::string defaultValue = "",
+			std::string separetor = " ",
+			std::string minVersion = "0.0",
+			std::string maxVersion = "1.2");
+
 	void copyTo(std::vector<std::string> &tokens, size_t from, size_t to, std::string fromSeparetor = " ", std::string toSeparetor = " ", std::string minVersion = "0.0", std::string maxVersion = "1.2");
 
 

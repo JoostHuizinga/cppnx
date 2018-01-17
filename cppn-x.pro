@@ -44,6 +44,9 @@ QMAKE_CFLAGS_X86_64 += -mmacosx-version-min=$$QMAKE_MACOSX_DEPLOYMENT_TARGET
 QMAKE_CXXFLAGS_X86_64 += -mmacosx-version-min=$$QMAKE_MACOSX_DEPLOYMENT_TARGET
 QMAKE_LFLAGS_X86_64 += -mmacosx-version-min=$$QMAKE_MACOSX_DEPLOYMENT_TARGET
 
+QMAKE_CXXFLAGS_X86_64 += -std=c++0x
+QMAKE_LFLAGS_X86_64 += -std=c++0x
+
 # Uncomment and edit to set a different SDK
 #macx {
 #    QMAKE_MAC_SDK = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk
