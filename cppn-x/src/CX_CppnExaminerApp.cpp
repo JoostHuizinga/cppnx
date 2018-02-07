@@ -39,6 +39,7 @@ CppnExaminerApp::CppnExaminerApp( int & argc, char **argv )
 
     //Process the basic options 'help' and 'verbose'
     if (options.count("verbose")){
+#ifdef DBG_ENABLED
         QStringList streams = options["verbose"];
         bool trace = options.count("trace") >= 1;
         foreach(QString stream, streams){
@@ -54,6 +55,10 @@ CppnExaminerApp::CppnExaminerApp( int & argc, char **argv )
             attach_ostream(dbg::tracing, std::cout);
         }
         dbg::out(dbg::info, "debug") << "Debugger is now active" << std::endl;
+#else
+      std::cout << "ERROR: binary not compiled with DBG_ENABLED." <<
+    		  "Please recompile to enable debug functionality." << std::endl;
+#endif
     }
 
     _mainWindow = new Window();
