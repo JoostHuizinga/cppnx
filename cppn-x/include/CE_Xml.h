@@ -37,6 +37,8 @@ const vec_str_t	color_v= {"color","r","g","b"};
 //const std::string	color_old= ("color");
 const std::string	position= ("position x y");
 const vec_str_t	position_v= {"position","x","y"};
+const std::string draw_order= ("draw-order z-value");
+const vec_str_t	draw_order_v= {"draw-order","z-value"};
 const std::string	source= ("source branch id");
 const vec_str_t	source_v= {"source","branch","id"};
 const std::string	target= ("target branch id");
@@ -168,7 +170,7 @@ inline std::string getCloseXmlString(std::string templateStr){
 inline std::string getOneLineXmlString(std::string templateStr, std::queue<std::string> parameters){
 	std::string result = "<";
 	result = appendParameters(result, templateStr, parameters);
-	result+="\\/>";
+	result+="/>";
 	return result;
 }
 

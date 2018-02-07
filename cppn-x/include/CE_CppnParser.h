@@ -211,7 +211,7 @@ private:
 			std::string defaultValue = "",
 			std::string separetor = " ",
 			std::string minVersion = "0.0",
-			std::string maxVersion = "1.2");
+			std::string maxVersion = "");
 
 	void copyTo(std::vector<std::string> &tokens, size_t from, size_t to, std::string fromSeparetor = " ", std::string toSeparetor = " ", std::string minVersion = "0.0", std::string maxVersion = "1.2");
 
@@ -238,6 +238,7 @@ private:
 		weight,
 		originalWeight,
 		bookends,
+		edgeDrawOrder,
 		edgeSize
 	};
 
@@ -251,6 +252,7 @@ private:
 		nodeIdentifier,
 		activationFunction,
 		position,
+		nodeDrawOrder,
 		nodeSize
 	};
 

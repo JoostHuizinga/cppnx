@@ -11,7 +11,7 @@
 #include "CE_Xml.h"
 #include "CE_Util.h"
 
-const std::string CppnWriter::version = "1.2";
+const std::string CppnWriter::version = "1.3";
 
 #define writeEach(template_str,count,writer) open(template_str, count); for(size_t i=0; i<count; i++){writer;} close(template_str);
 
@@ -81,9 +81,10 @@ void CppnWriter::openClose(std::string template_str, ParamType param){
 
 void CppnWriter::write(Cppn* cppn, QList<Label*> labels, FileInformation* fileInformation, QList<NodeView*> nodeviews){
 	output << ce_xml::getFirstLine() << "\n";
-	write(ce_xml::cppn_data, version);
 	open(ce_xml::data, fileInformation->dataVersion);
+	write(ce_xml::cppn_data, version);
 	open(ce_xml::genomePhen, fileInformation->age, fileInformation->phenotype);
+
 	write(ce_xml::identifier, fileInformation->branch, fileInformation->id);
 
 	writeEach(ce_xml::parent_count, fileInformation->parent_branches.size(), write(ce_xml::identifier, fileInformation->parent_branches[i], fileInformation->parent_ids[i]));
@@ -119,6 +120,7 @@ void CppnWriter::writeNode(Node* node){
 	write(ce_xml::color_label, node->getLabelId());
 	write(ce_xml::position, node->pos().x(), node->pos().y());
 	openClose(ce_xml::text, node->getNote().toStdString());
+	write(ce_xml::draw_order, node->zValue());
 	close(ce_xml::colornode);
 }
 
@@ -132,6 +134,7 @@ void CppnWriter::writeEdge(Edge* edge){
 	write(ce_xml::color_label, edge->getLabelId());
 	openClose(ce_xml::text, edge->getNote().toStdString());
 	write(ce_xml::bookends, edge->getBookendStart(), edge->getBookendEnd(), edge->getStepsize());
+	write(ce_xml::draw_order, edge->zValue());
 	close(ce_xml::link);
 }
 
