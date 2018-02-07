@@ -71,6 +71,7 @@ bool DownloadAssistant::download() {
 }
 
 void DownloadAssistant::downloadProgress(qint64 recieved, qint64 total) {
-
+	 Q_UNUSED(recieved);
+	 Q_UNUSED(total);
 }
 
