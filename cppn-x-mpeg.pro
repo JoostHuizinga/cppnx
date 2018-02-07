@@ -25,3 +25,5 @@ DEFINES += USE_FFMPEG
 # Input
 HEADERS += qtffmpeg/QTFFmpegWrapper/QVideoEncoder.h
 SOURCES += qtffmpeg/QTFFmpegWrapper/QVideoEncoder.cpp 
+
+CONFIG += release

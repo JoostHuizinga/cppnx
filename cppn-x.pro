@@ -145,6 +145,7 @@ HEADERS += zlib/crc32.h \
            cppn-x/include/CX_CppnInformation.hpp \
            cppn-x/include/CX_GenomeDirWidget.hpp \
            cppn-x/include/CX_DownloadAssistant.hpp \
+           cppn-x/include/CX_ComSetZ.hpp \
            libzip-0.11.1/lib/zip.h \
            libzip-0.11.1/lib/zipconf.h \
            libzip-0.11.1/lib/zipint.h
@@ -208,6 +209,7 @@ SOURCES += zlib/adler32.c \
            cppn-x/src/CX_CsvParser.cpp \
            cppn-x/src/CX_GenomeDirWidget.cpp \
            cppn-x/src/CX_DownloadAssistant.cpp \
+           cppn-x/src/CX_ComSetZ.cpp \
            libzip-0.11.1/lib/mkstemp.c \
            libzip-0.11.1/lib/zip_add.c \
            libzip-0.11.1/lib/zip_add_dir.c \

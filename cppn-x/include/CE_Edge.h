@@ -280,7 +280,9 @@ private:
 //    		  qreal offsetY = (abs(_line.p1().y() - _line.p2().y()) / 2);
     		  path.cubicTo(_curvePoint1, _curvePoint2, _line.p2());
 
-//    		  path.cubicTo(_line.p1().x(), _line.p1().y() - offsetY + _curveOffset, _line.p2().x(), _line.p2().y() + offsetY + _curveOffset, _line.p2().x(), _line.p2().y());
+//    		  path.cubicTo(_line.p1().x(), _line.p1().y() - offsetY + _curveOffset,
+//    		  _line.p2().x(), _line.p2().y() + offsetY + _curveOffset, _line.p2().x(),
+//    		  _line.p2().y());
     	  }
 
     	  return path;

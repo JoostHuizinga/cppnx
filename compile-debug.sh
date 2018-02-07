@@ -12,9 +12,11 @@ rootDir=`pwd`
 
 if [[ $1 = ffmpeg ]]
 then
-	COMMAND="qmake -spec macx-g++ ${rootDir}/cppn-x-mpeg.pro"
+	COMMAND="qmake -spec macx-g++ ${rootDir}/cppn-x-mpeg-debug.pro"
+    buildDir="build/debug-ffmpeg"
 else
 	COMMAND="qmake -spec macx-g++ ${rootDir}/cppn-x-debug.pro"
+    buildDir="build/debug"
 fi
 
 # Add the current directory as the root. 
@@ -33,7 +35,6 @@ fi
 # Set other variables.
 # The build dir determines which directory is created to use as a build dir.
 # Note that the CMakeLists file does not allow 'in-source' builds so 'buildDir' can not be '.'
-buildDir="build/debug"
 
 # Build cppn_examiner
 echo Building CPPN Examiner

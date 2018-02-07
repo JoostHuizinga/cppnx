@@ -308,6 +308,9 @@ Window::Window(){
     posMenu->addAction(cppnWidget->getAlignVerticalAction());
     posMenu->addAction(cppnWidget->getSpaceHorizontalAction());
     posMenu->addAction(cppnWidget->getSpaceVerticalAction());
+    posMenu->addSeparator();
+    posMenu->addAction(cppnWidget->getBringToFrontAction());
+    posMenu->addAction(cppnWidget->getSendToBackAction());
 
 
     // Edit menu

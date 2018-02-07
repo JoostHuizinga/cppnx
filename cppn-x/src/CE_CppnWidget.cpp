@@ -14,6 +14,7 @@
 #include "CE_CppnWriter.h"
 #include "CX_ComSetBookends.h"
 #include "CX_Debug.hpp"
+#include "CX_ComSetZ.hpp"
 
 // Debug defines
 #define DBOC dbg::out(dbg::info, "cppn")
@@ -313,6 +314,16 @@ CppnWidget::CppnWidget(QWidget* widget)
     		tr("Equally distributes the selected nodes between the first and last node selected, vertically."),
 			SLOT(spaceVertical()));
     _nodeActions.append(_spaceVertical);
+    _bringToFront = createAction(tr("Bring to front"),
+    		tr("Brings the selected items in front of all other items."),
+			SLOT(bringToFront()));
+    _bringToFront->setShortcut(tr("Shift+Ctrl+F"));
+    _anythingSelectedActions.append(_bringToFront);
+    _sendToBack = createAction(tr("Send to back"),
+    		tr("Sends the selected items behind all other items."),
+			SLOT(sendToBack()));
+    _sendToBack->setShortcut(tr("Shift+Ctrl+B"));
+    _anythingSelectedActions.append(_sendToBack);
 
     _scaleLegend = createAction(tr("Scale legend"),
     		tr("Change the size of the legend."),
@@ -452,6 +463,7 @@ CppnWidget::CppnWidget(QWidget* widget)
 
     setNodeSelected(false);
     setTwoNodesSelected(false);
+    setAnythingSelected(false);
 
     // Activation functions sub-menu
     _afMenu = new QMenu(tr("Activation Functions"), this);
@@ -818,6 +830,73 @@ void CppnWidget::removeEdge(Edge* edge){
 			this, SLOT(weightUpdated(Edge*)));
 }
 
+
+qreal CppnWidget::_getMaxZ(){
+	// Could be cached if performance issues arise
+	qreal max_z_value = scene()->items().first()->zValue();
+	foreach(QGraphicsItem* item, scene()->items()){
+		if(item->zValue() > max_z_value){
+			max_z_value = item->zValue();
+		}
+	}
+	return max_z_value;
+}
+
+qreal CppnWidget::_getMinZ(){
+	// Could be cached if performance issues arise
+	qreal min_z_value = scene()->items().first()->zValue();
+	foreach(QGraphicsItem* item, scene()->items()){
+		if(item->zValue() < min_z_value){
+			min_z_value = item->zValue();
+		}
+	}
+	return min_z_value;
+}
+
+//class Z_Compare{
+//public:
+//	bool operator()(QGraphicsItem* left, QGraphicsItem* right){
+//		return left->zValue() > right->zValue();
+//	}
+//};
+//
+//bool CppnWidget::bringToFront(QGraphicsItem* s_item){
+//	foreach(QGraphicsItem* item, scene()->items()){
+//		if(s_item->zValue() + 1.0 == item->zValue()){
+//			s_item->setZValue(item->zValue());
+//			item->setZValue(s_item->zValue() - 1.0);
+//			return true;
+//		}
+//	}
+//	return false;
+//}
+
+//void CppnWidget::_buildDrawOrderCache(){
+//	std::priority_queue<QGraphicsItem*, std::vector<QGraphicsItem*>, Z_Compare> q;
+//	foreach(QGraphicsItem* item, scene()->items()){
+//		q.push(item);
+//	}
+//	qreal z=0;
+//    while(!q.empty()) {
+//        q.top()->setZValue(z);
+//        q.pop();
+//        z+=1.0;
+//    }
+//}
+
+void CppnWidget::bringToFront(){
+	qreal max_z_value = _getMaxZ();
+	emit requestCommandExecution(new CommandSetZ(scene()->selectedItems(),
+			max_z_value+1, tr("Bring to front")));
+}
+
+void CppnWidget::sendToBack(){
+	qreal max_z_value = _getMinZ();
+	emit requestCommandExecution(new CommandSetZ(scene()->selectedItems(),
+			max_z_value-1, tr("Send to back")));
+}
+
+
 void CppnWidget::scaleLegend(){
     if(!_legend) return;
     QString title = tr("Choose legend scale");
@@ -915,6 +994,7 @@ void CppnWidget::updateSelection(){
 	setNodeSelected(nodeSelected);
 	setTwoNodesSelected(_twoNodesSelected);
 	setEdgeSelected(edgeSelected);
+	setAnythingSelected(selected.size() > 0);
 }
 
 void CppnWidget::updatePreviousPositions(){
@@ -1054,6 +1134,7 @@ void CppnWidget::changeEvent(QEvent* event){
 			setNodeSelected(nodeSelected);
 			setTwoNodesSelected(_twoNodesSelected);
 			setEdgeSelected(edgeSelected);
+			setAnythingSelected(scene()->selectedItems().size()>0);
 		}
 	break;
 	default:
@@ -1081,6 +1162,13 @@ void CppnWidget::setTwoNodesSelected(bool selected){
 void CppnWidget::setEdgeSelected(bool selected){
     dbg::trace trace("cppnwidget", DBG_HERE);
 	edgeSelected = selected;
+}
+
+void CppnWidget::setAnythingSelected(bool selected){
+    dbg::trace trace("cppnwidget", DBG_HERE);
+	foreach(QAction* action, _anythingSelectedActions){
+		action->setEnabled(selected);
+	}
 }
 
 void CppnWidget::saveImage(){

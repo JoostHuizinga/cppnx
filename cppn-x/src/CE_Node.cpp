@@ -91,6 +91,7 @@ Node::Node(std::iostream &stream, std::map<std::string, Label*> labelMap):
 		_cppn(0){
     dbg::trace trace("node", DBG_HERE);
 	double x, y;
+	qreal z;
 
 	stream >> affinity;
 	dbg::out(dbg::info, "node") << "Affinity: " << affinity << std::endl;
@@ -110,8 +111,11 @@ Node::Node(std::iostream &stream, std::map<std::string, Label*> labelMap):
     dbg::out(dbg::info, "node") << "x: " << x << std::endl;
 	stream >> y;
     dbg::out(dbg::info, "node") << "y: " << y << std::endl;
+	stream >> z;
+    dbg::out(dbg::info, "node") << "z: " << z << std::endl;
 
 	setPos(x, y);
+	setZValue(z);
 	init();
 	nodes_in_memory++;
 	dbg::out(dbg::info, "node") << "Node created: Nodes in memory: " << nodes_in_memory << std::endl;

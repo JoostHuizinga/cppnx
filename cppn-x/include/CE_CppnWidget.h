@@ -140,6 +140,8 @@ public:
     QAction* getAlignVerticalAction(){return _alignVertical;}
     QAction* getSpaceHorizontalAction(){return _spaceHorizontal;}
     QAction* getSpaceVerticalAction(){return _spaceVertical;}
+    QAction* getBringToFrontAction(){return _bringToFront;}
+    QAction* getSendToBackAction(){return _sendToBack;}
 
     QAction* getColorPathAction(){return _colorPathAction;}
 
@@ -279,6 +281,9 @@ public slots:
     void spaceHorizontal();
     void spaceVertical();
 
+    void bringToFront();
+    void sendToBack();
+
 
 signals:
 	void requestAddNodeview(QList<QGraphicsItem*>);
@@ -300,7 +305,10 @@ private:
     void setNodeSelected(bool selected);
     void setTwoNodesSelected(bool selected);
     void setEdgeSelected(bool selected);
+    void setAnythingSelected(bool selected);
     void setSceneRect();
+    qreal _getMaxZ();
+    qreal _getMinZ();
 
     QList<Node*> _getSelectedNodes();
 
@@ -374,12 +382,15 @@ private:
     QAction* _alignVertical;
     QAction* _spaceHorizontal;
     QAction* _spaceVertical;
+    QAction* _bringToFront;
+    QAction* _sendToBack;
 
 
     QAction* _scaleLegend;
 
     QList<QAction*> _nodeActions;
     QList<QAction*> _twoNodeActions;
+    QList<QAction*> _anythingSelectedActions;
     //
 //    QAction* _setFavorite;
 

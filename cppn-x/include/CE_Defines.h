@@ -63,6 +63,7 @@
 #define RESET_WEIGHT_ID 2
 #define SET_POS_ID 3
 #define SET_BOOKEND_ID 4
+#define SET_Z_ID 5
 
 #define IMAGE_WIDTH 256
 #define IMAGE_HEIGHT 256

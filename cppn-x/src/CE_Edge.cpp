@@ -99,6 +99,7 @@ Edge::Edge(std::iostream &stream, std::map<std::string, Node*> nodeMap, std::map
 {
 	std::string sourceId;
 	std::string targetId;
+	qreal z;
 
 	stream >> branch;
 	stream >> id;
@@ -109,7 +110,9 @@ Edge::Edge(std::iostream &stream, std::map<std::string, Node*> nodeMap, std::map
 	stream >> bookendStart;
 	stream >> bookendEnd;
 	stream >> stepSize;
+	stream >> z;
 
+	setZValue(z);
 	source = nodeMap[sourceId];
 	dest = nodeMap[targetId];
 	init();
@@ -395,8 +398,15 @@ void Edge::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
 	        painter->setPen(Qt::NoPen);
 	        painter->setBrush(lineColor);
 	        painter->drawEllipse(center, half_width, half_width); //(QRectF(center.x()-half_width, center.y()-half_width, half_width*2, half_width*2), lineColor);
-
-	        painter->setPen(Qt::white);
+	        QColor textColor;
+	        if(lineColor.value() < 128){
+	        	textColor = Qt::white;
+	        	//painter->setPen(Qt::white);
+	        } else {
+	        	textColor = lineColor.darker();
+	        	//painter->setPen(Qt::gray);
+	        }
+	        painter->setPen(textColor);
 	        painter->setBrush(Qt::NoBrush);
 	        painter->drawText(textRect, Qt::TextSingleLine | Qt::AlignCenter | Qt::NoClip, stringList[1], &rect);
 
