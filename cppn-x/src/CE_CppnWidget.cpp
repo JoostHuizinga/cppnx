@@ -506,20 +506,38 @@ void CppnWidget::deleteCppn(){
     }
 }
 
+void CppnWidget::newCppn(){
+	Cppn* new_cppn = 0;
+	if(cppn != 0){
+		new_cppn = cppn->getCppnInfo()->getNewCppn();
+	} else {
+		// TODO: Think of an elegant way to provide the default CPPN type
+		DEFAULT_CPPN_TYPE cppn_info;
+		new_cppn = cppn_info.getNewCppn();
+	}
+	setCppn(new_cppn);
+//    setCppn(nodes, edges);
+}
+
 void CppnWidget::setCppn(QList<Node*> nodes, QList<Edge*> edges, CppnInformation* cppnInformation){
     dbg::trace trace("cppnwidget", DBG_HERE);
 	//Clean previous objects
     deleteCppn();
 
-	cppn = new Cppn;
+    // TODO: Think of an elegant way to provide the default CPPN type
+    CppnType* cppn_info = 0;
 	if(cppnInformation){
-		cppn->setMinX(cppnInformation->min_x);
-		cppn->setMaxX(cppnInformation->max_x);
-		cppn->setMinY(cppnInformation->min_y);
-		cppn->setMaxY(cppnInformation->max_y);
-		cppn->setResX(cppnInformation->x_res);
-		cppn->setResY(cppnInformation->y_res);
+		cppn_info = new TwoDimCppnType(
+				cppnInformation->min_x,
+				cppnInformation->max_x,
+				cppnInformation->min_y,
+				cppnInformation->max_y,
+				cppnInformation->x_res,
+				cppnInformation->y_res);
 	}
+
+	cppn = new Cppn(cppn_info);
+
 	foreach(Node* node, nodes){
 		addNode(node);
 	}
@@ -538,13 +556,13 @@ void CppnWidget::setCppn(Cppn* cppn_){
 
     // For now, we are making a manual copy of the cppn, to make sure all nodes
     // and edges are properly connected.
-    cppn = new Cppn;
-    cppn->setMinX(cppn_->getMinX());
-    cppn->setMaxX(cppn_->getMaxX());
-    cppn->setMinY(cppn_->getMinY());
-    cppn->setMaxY(cppn_->getMaxY());
-    cppn->setResX(cppn_->getResX());
-    cppn->setResY(cppn_->getResX());
+    cppn = new Cppn(cppn_->getCppnInfo()->clone());
+//    cppn->setMinX(cppn_->getMinX());
+//    cppn->setMaxX(cppn_->getMaxX());
+//    cppn->setMinY(cppn_->getMinY());
+//    cppn->setMaxY(cppn_->getMaxY());
+//    cppn->setResX(cppn_->getResX());
+//    cppn->setResY(cppn_->getResX());
 	foreach(Node* node, cppn_->getNodes()){
 		addNode(node);
 	}

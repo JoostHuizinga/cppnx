@@ -163,8 +163,8 @@ void Node::reinitImage(){
     int width = IMAGE_WIDTH;
     int height = IMAGE_HEIGHT;
     if(_cppn){
-    	width = _cppn->getResX();
-    	height = _cppn->getResY();
+    	width = _cppn->getCppnInfo()->getImageWidth();
+    	height = _cppn->getCppnInfo()->getImageHeight();
     }
 
     pixels = QSharedPointer<QImage>(new QImage(width, height, QImage::Format_RGB32));
@@ -400,19 +400,54 @@ QVariant Node::itemChange(GraphicsItemChange change, const QVariant &value)
 //}
 
 
+//void Node::setPixel(size_t index, const double& value){
+//    dbg::trace trace("node", DBG_HERE);
+//	size_t localindex = index*4;
+//	//Grey does not use the min() function to prevent a bug on windows.
+//	unsigned char red = 255;
+//	if(std::abs(value) < 1.0) red = std::abs(value)*255;
+//	unsigned char green(std::min(std::max(value, 0.0), 1.0)*255);
+//	unsigned char blue(std::min(std::max(value, 0.0), 1.0)*255);
+//	if(value > 1.0) blue = (1-std::min(std::max(((std::abs(value)-1)/5), 0.0), 1.0))*255;
+//	if(value < -1.0) blue = std::min(std::max(((std::abs(value)-1)/5), 0.0), 1.0)*255;
+//	pixels->bits()[localindex]=blue;
+//	pixels->bits()[localindex+1]=green;
+//	pixels->bits()[localindex+2]=red;
+//}
+
+
 void Node::setPixel(size_t index, const double& value){
     dbg::trace trace("node", DBG_HERE);
-	size_t localindex = index*4;
-	//Grey does not use the min() function to prevent a bug on windows.
-	unsigned char red = 255;
-	if(std::abs(value) < 1.0) red = std::abs(value)*255;
-	unsigned char green(std::min(std::max(value, 0.0), 1.0)*255);
-	unsigned char blue(std::min(std::max(value, 0.0), 1.0)*255);
-	if(value > 1.0) blue = (1-std::min(std::max(((std::abs(value)-1)/5), 0.0), 1.0))*255;
-	if(value < -1.0) blue = std::min(std::max(((std::abs(value)-1)/5), 0.0), 1.0)*255;
-	pixels->bits()[localindex]=blue;
-	pixels->bits()[localindex+1]=green;
-	pixels->bits()[localindex+2]=red;
+    int desired_y = 0;
+    float y_offset = pixels->height()/2.0;
+    float y_scale = y_offset*0.9;
+
+    if (index==0) pixels->fill(QColor(101, 151, 74).rgb());
+
+    int width = pixels->width();
+    int x = index % width;
+    int y = index / width;
+
+    if (y!=desired_y) return;
+
+//	size_t localindex = index*4;
+//	//Grey does not use the min() function to prevent a bug on windows.
+//	unsigned char red = 255;
+//	if(std::abs(value) < 1.0) red = std::abs(value)*255;
+//	unsigned char green(std::min(std::max(value, 0.0), 1.0)*255);
+//	unsigned char blue(std::min(std::max(value, 0.0), 1.0)*255);
+//	if(value > 1.0) blue = (1-std::min(std::max(((std::abs(value)-1)/5), 0.0), 1.0))*255;
+//	if(value < -1.0) blue = std::min(std::max(((std::abs(value)-1)/5), 0.0), 1.0)*255;
+//	pixels->bits()[localindex]=blue;
+//	pixels->bits()[localindex+1]=green;
+//	pixels->bits()[localindex+2]=red;
+    int local_value = (int)((value*y_scale + y_offset));
+//    std::cout << index << ": " << local_value << std::endl;
+
+//	pixels->setPixel(index, local_value, Qt::white);
+    for(int i=0; i<=local_value && i<pixels->height(); ++i){
+    	pixels->setPixel(x, i, QColor(234, 234, 255).rgb());
+    }
 }
 
 

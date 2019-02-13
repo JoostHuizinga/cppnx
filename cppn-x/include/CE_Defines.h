@@ -75,6 +75,11 @@
 #define CONTEXT_EVENT_COLOR QColor(226,226,255)
 #define NO_FOCUS_SELECTED_COLOR QColor(150,150,150)
 
+#ifdef ONE_D_CPPN
+#define DEFAULT_CPPN_TYPE OneDimCppnType
+#else
+#define DEFAULT_CPPN_TYPE TwoDimCppnType
+#endif
 //    static const int width = 256;
 //    static const int height = 256;
 
@@ -83,7 +88,13 @@ enum inputs{
 	input_y =1,
 	input_d =2,
 	input_b =3,
-	nr_of_inputs =4
+//	nr_of_inputs =4
+};
+
+enum input_types{
+	two_dimensional,
+	one_dimensional,
+	nr_of_input_types
 };
 
 

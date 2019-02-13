@@ -157,8 +157,8 @@ void FinalNodeView::updateValOrBlue(){
 
 void FinalNodeView::resizeNode(){
 	if(_valOrBlueNode && _valOrBlueNode->getCppn()){
-		_node_x_res = _valOrBlueNode->getCppn()->getResX();
-		_node_y_res = _valOrBlueNode->getCppn()->getResY();
+		_node_x_res = _valOrBlueNode->getImage()->width();
+		_node_y_res = _valOrBlueNode->getImage()->height();
     } else {
     	_node_x_res = IMAGE_WIDTH;
     	_node_y_res = IMAGE_HEIGHT;

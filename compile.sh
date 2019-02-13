@@ -14,8 +14,12 @@ if [[ $1 = ffmpeg ]]
 then
 	COMMAND="qmake -spec macx-g++ ${rootDir}/cppn-x-mpeg.pro"
     buildDir="build/release-ffmpeg"
+elif [[ $1 = one_d ]]
+then
+	COMMAND="qmake -spec macx-g++ ${rootDir}/cppn-x-one-d.pro"
+    buildDir="build/release-one-d"
 else
-	COMMAND="qmake -spec macx-g++ ${rootDir}/cppn-x-release.pro"
+    COMMAND="qmake -spec macx-g++ ${rootDir}/cppn-x-release.pro"
     buildDir="build/release"
 fi
 

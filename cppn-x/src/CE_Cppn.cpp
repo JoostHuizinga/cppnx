@@ -63,6 +63,7 @@ void Cppn::copy(Cppn* other){
             }
         }
     }
+    _cppn_info = other->_cppn_info->clone();
 }
 
 void Cppn::swap(int index1, int index2){
@@ -83,34 +84,18 @@ void Cppn::addNode(Node* node){
 
 
 	//See if node is an input or output
-	if(node->getType() == XML_TYPE_INPUT){
+	if(_cppn_info->inputIsUsed(node->getXmlLabel())){
 		inputs.push_back(node);
 	} else if(node->getType() == XML_TYPE_OUTPUT){
 		outputs.push_back(node);
 	}
 
-	if(inputs.size() == 4 && !_inputsOrdered){
+	if(inputs.size() == _cppn_info->getNrInputNodes() && !_inputsOrdered){
 	    foreach(Node* inputNode, inputs){
 	        //Determine the type of input, if this node is an input
-	        if(inputNode->getXmlLabel() == INPUT_X){
-	            swap(inputNode->getIndex(), input_x);
-//	            nodes.swap(inputNode->getIndex(), input_x);
-//	            nodes[]
-//	            nodes[input_x]=node;
-//	            node->setIndex(input_x);
-	        } else if(inputNode->getXmlLabel() == INPUT_Y){
-	            swap(inputNode->getIndex(), input_y);
-//	            nodes[input_y]=node;
-//	            node->setIndex(input_y);
-	        } else if(inputNode->getXmlLabel() == INPUT_D){
-	            swap(inputNode->getIndex(), input_d);
-//	            nodes[input_d]=node;
-//	            node->setIndex(input_d);
-	        } else if(inputNode->getXmlLabel() == INPUT_BIAS){
-	            swap(inputNode->getIndex(), input_b);
-//	            nodes[input_b]=node;
-//	            node->setIndex(input_b);
-	        }
+	    	int target_index = _cppn_info->getInputIndex(inputNode->getXmlLabel());
+	    	DBOC << "Swapping input: " << inputNode->getIndex() << " with: " << target_index << std::endl;
+	    	swap(inputNode->getIndex(), target_index);
 	    }
 	    _inputsOrdered = true;
 	}
@@ -299,34 +284,44 @@ void Cppn::setWeight(Edge* edge, double weight, bool update){
 }
 
 
+void Cppn::initInputs(){
+	for(int i=0; i<_cppn_info->getNrInputNodes(); ++i){
+		for(int j=0; j<_cppn_info->getCoordsPerNode(); ++j){
+			double value = _cppn_info->getInputValue(i, j);
+			updateNode(i, j, value);
+		}
+	}
+}
+
 
 void Cppn::updateNodes(){
 	dbg::trace trace("cppn", DBG_HERE);
 	if(!validPhenotype) buildPhenotype();
 
 	dbg::out(dbg::info, "cppn") << "Setting input values... " << std::endl;
+	initInputs();
 	//Set input values
-	for(int x=0; x<width; x++){
-		for(int y=0; y<height; y++){
-			int x_diff = _max_x - _min_x;
-			int y_diff = _max_y - _min_y;
-			double xv = (double(x)/(double(width)/x_diff) + _min_x);
-			double yv = (double(y)/(double(height)/y_diff) + _min_y);
-			size_t index = x + y*width;
-
-			updateNode(input_x, index, xv);
-			updateNode(input_y, index, yv);
-			updateNode(input_d, index, double(std::sqrt(float(xv*xv+yv*yv))*1.4));
-			updateNode(input_b, index, 1.0);
-		}
-	}
+//	for(int x=0; x<width; x++){
+//		for(int y=0; y<height; y++){
+//			int x_diff = _max_x - _min_x;
+//			int y_diff = _max_y - _min_y;
+//			double xv = (double(x)/(double(width)/x_diff) + _min_x);
+//			double yv = (double(y)/(double(height)/y_diff) + _min_y);
+//			size_t index = x + y*width;
+//
+//			updateNode(_input_indices[input_x], index, xv);
+//			updateNode(_input_indices[input_y], index, yv);
+//			updateNode(_input_indices[input_d], index, double(std::sqrt(float(xv*xv+yv*yv))*1.4));
+//			updateNode(_input_indices[input_b], index, 1.0);
+//		}
+//	}
 	dbg::out(dbg::info, "cppn") << "Setting input values... done" << std::endl;
 
 	//Update the rest
 	dbg::out(dbg::info, "cppn") << "Updating other nodes... " << std::endl;
-	for(size_t currentNode=nr_of_inputs; currentNode<numberOfNodes; currentNode++){
+	for(size_t currentNode=_cppn_info->getNrInputNodes(); currentNode<numberOfNodes; currentNode++){
 //		std::cout << "Current node: " << currentNode << std::endl;
-		for(int xy_index=0; xy_index < width*height;  xy_index++){
+		for(int xy_index=0; xy_index < _coords_per_node;  xy_index++){
 //			std::cout << "Index: " << xy_index << std::endl;
 			updateNode(currentNode, xy_index);
 		}
@@ -419,7 +414,7 @@ void Cppn::placeNode(Node* node, size_t index, size_t& lastTarget,
 	    		" name: " << incommingEdge->getName() <<
 	    		" index:" << lastSource << " ... " << std::endl;
 	    dbg::check_bounds(dbg::error, 0, lastSource, edges.size(), DBG_HERE);
-		nodeSources[lastSource] = incommingEdge->getIndex()*width*height;
+		nodeSources[lastSource] = incommingEdge->getIndex()*_coords_per_node;
 		lastSource++;
 	}
 
@@ -446,15 +441,15 @@ void Cppn::buildPhenotype(){
 	linkWeights = new double[edges.size()];
 	nodeSources = new size_t[edges.size()];
 
-	nodeChache = new double[nodes.size()*width*height];
-	linkChache = new double[edges.size()*width*height];
+	nodeChache = new double[nodes.size()*_coords_per_node];
+	linkChache = new double[edges.size()*_coords_per_node];
 
 
 	std::vector< std::vector <Node*> > layers = buildLayers();
 
-	std::queue<Node*> test1;
+//	std::queue<Node*> test1;
 
-	size_t currentNodeIndex=nr_of_inputs;
+	size_t currentNodeIndex=_cppn_info->getNrInputNodes();
 	lastTargets[0]=0;
 	lastSources[0]=0;
 	size_t targetEdgeIndex=0;
@@ -464,12 +459,13 @@ void Cppn::buildPhenotype(){
 
 //	std::cout << "Ordering input nodes... " << std::flush;
 	//Put the input nodes in the right order
-	size_t assigned_inputs = 0;
-	std::vector<Node*> inputs(4, (Node*) 0);
-	dbg::assertion(DBG_ASSERTION(layers[0].size() >= inputs.size()));
+	int assigned_inputs = 0;
+	std::vector<Node*> inputs(_cppn_info->getNrInputNodes(), (Node*) 0);
 	dbg::out(dbg::info, "cppn") << "Nodes in layer 1: " << layers[0].size() << std::endl;
+	dbg::out(dbg::info, "cppn") << "Expected inputs: " << inputs.size() << std::endl;
+	dbg::assertion(DBG_ASSERTION(layers[0].size() >= inputs.size()));
 	for(size_t i=0; i<layers[0].size(); i++ ){
-		if(layers[0][i]->getType() == XML_TYPE_INPUT){
+		if(_cppn_info->inputIsUsed(layers[0][i]->getXmlLabel())){
 		    size_t input_index = layers[0][i]->getIndex();
 		    dbg::check_bounds(dbg::error, 0, input_index, inputs.size(), DBG_HERE);
 		    dbg::assertion(DBG_ASSERTION(inputs[input_index] == 0));
@@ -478,19 +474,19 @@ void Cppn::buildPhenotype(){
 			++assigned_inputs;
 		}
 	}
-	dbg::assertion(DBG_ASSERTION(assigned_inputs == 4));
+	dbg::assertion(DBG_ASSERTION(assigned_inputs == _cppn_info->getNrInputNodes()));
 //	std::cout << "done " << std::endl;
 
-	std::queue<Node*> test2;
+//	std::queue<Node*> test2;
 
 //	std::cout << "Building input nodes... " << std::flush;
 	//Process the input nodes
-	for(size_t i=0; i<4; i++ ){
+	for(size_t i=0; i<inputs.size(); i++ ){
 		placeNode(inputs[i], i, targetEdgeIndex, sourceEdgeIndex);
 	}
 //	std::cout << "done " << std::endl;
 
-	std::queue<Node*> test3;
+//	std::queue<Node*> test3;
 
 //	std::cout << "Building other nodes... " << std::endl;
 	//Process the rest
@@ -498,7 +494,7 @@ void Cppn::buildPhenotype(){
 		for(size_t j=0; j< layers[i].size(); j++){
 
 
-			if(layers[i][j]->getType() == XML_TYPE_INPUT){
+			if(_cppn_info->inputIsUsed(layers[i][j]->getXmlLabel())){
 				//std::cout << "Input set" << std::endl;
 				//placeNode(layers[i][j], layers[i][j]->getIndex(), targetEdgeIndex, sourceEdgeIndex);
 			} else {
@@ -669,12 +665,12 @@ void Cppn::updateFromLink(Edge* edge){
 	size_t target_node_index = edge->destNode()->getIndex();
 	size_t link_index = edge->getIndex();
 
-	for(int xy_index=0; xy_index < width*height;  xy_index++){
-		linkChache[xy_index+link_index*width*height]=nodeChache[xy_index+source_node_index*width*height]*linkWeights[link_index];
+	for(int xy_index=0; xy_index < _coords_per_node;  xy_index++){
+		linkChache[xy_index+link_index*_coords_per_node]=nodeChache[xy_index+source_node_index*_coords_per_node]*linkWeights[link_index];
 	}
 
 	for(size_t i=toUpdateStart[target_node_index]; i<toUpdateStart[target_node_index+1]; i++){
-		for(int xy_index=0; xy_index < width*height;  xy_index++){
+		for(int xy_index=0; xy_index < _coords_per_node;  xy_index++){
 			updateNode(toUpdate[i], xy_index);
 		}
 
@@ -686,7 +682,7 @@ void Cppn::updateFromLink(Edge* edge){
 
 inline void Cppn::updateNode(const size_t& node, const size_t& xy_index, const double& initialValue){
 	dbg::trace trace("cppn", DBG_HERE);
-	size_t index = xy_index+node*width*height;
+	size_t index = xy_index+node*_coords_per_node;
 
 	nodeChache[index]=initialValue;
 
@@ -699,23 +695,24 @@ inline void Cppn::updateNode(const size_t& node, const size_t& xy_index, const d
 
 	//Apply the activation function
 	nodeChache[index]= (*activationFunctions[node])(nodeChache[index]);
-	phenotypeNodes[node]->setPixel(xy_index, nodeChache[index]);
+	_cppn_info->processValue(phenotypeNodes[node]->getImage(), xy_index, nodeChache[index]);
+//	phenotypeNodes[node]->setPixel(xy_index, nodeChache[index]);
 
 	//Calculate outgoing links
 	//std::cout << "lastTargets[node] " << lastTargets[node] << " lastTargets[node+1] " << lastTargets[node+1] <<std::endl;
 	for(size_t i = lastTargets[node]; i<lastTargets[node+1]; i++){
-		linkChache[xy_index+i*width*height]=nodeChache[index]*linkWeights[i];
+		linkChache[xy_index+i*_coords_per_node]=nodeChache[index]*linkWeights[i];
 	}
 }
 
 inline void Cppn::updateNode(const size_t& node){
 	dbg::trace trace("cppn", DBG_HERE);
-	if(node <nr_of_inputs){
-		for(int xy_index=0; xy_index < width*height;  xy_index++){
-			updateNode(node, xy_index, nodeChache[xy_index+node*width*height]);
+	if(node < size_t(_cppn_info->getNrInputNodes())){
+		for(int xy_index=0; xy_index < _coords_per_node;  xy_index++){
+			updateNode(node, xy_index, nodeChache[xy_index+node*_coords_per_node]);
 		}
 	} else {
-		for(int xy_index=0; xy_index < width*height;  xy_index++){
+		for(int xy_index=0; xy_index < _coords_per_node;  xy_index++){
 			updateNode(node, xy_index);
 		}
 	}

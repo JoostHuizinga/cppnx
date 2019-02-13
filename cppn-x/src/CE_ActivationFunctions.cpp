@@ -182,6 +182,9 @@ namespace act_functions{
 	}
 
 	double gaussian ( double input ) {
+		if (isnan(input)){
+			throw std::domain_error("Unable to process NAN.");
+		}
 //		std::cout << std::setprecision(17) << "gaussian current: " << input << " low: " << gaussianLow << " high: " << gaussianHigh  << " offset: " << gaussianOffset << std::endl;
 //		std::cout << "index: "<< gaussianOffset + (int)(input * RESOLUTION + 0.5) << " dif: " <<  gaussianHigh - gaussianLow << " value: " << signedGaussianTable[(gaussianOffset + (int)(input * RESOLUTION + 0.5))] << std::endl;
 	    if (input <= gaussianLow) return signedGaussianTable[0];
@@ -191,7 +194,14 @@ namespace act_functions{
 
 	double sigmoid ( double input ) {
 //		std::cout << std::setprecision(17) << "sigmoid current: " << input << " low: " << sigmoidLow << " high: " << sigmoidHigh << " offset: " << sigmoidOffset << std::endl;
-//		std::cout << "index: "<< sigmoidOffset + (int)(input * RESOLUTION + 0.5)  << " dif: " <<  sigmoidHigh - sigmoidLow << " value: " << signedSigmoidTable[(sigmoidOffset + (int)(input * RESOLUTION + 0.5))] << std::endl;
+//		int index = sigmoidOffset + (int)(input * RESOLUTION + 0.5);
+//		std::cout << "input: " << input << " res: " << RESOLUTION << " mult: " << input * RESOLUTION << std::endl;
+//		std::cout << "index: " << index << " dif: " <<  sigmoidHigh - sigmoidLow << std::endl;
+//		std::cout << "sigmoidHigh: " << sigmoidHigh << " sigmoidLow: " << sigmoidLow << std::endl;
+//		std::cout << " value: " << signedSigmoidTable[index] << std::endl;
+		if (isnan(input)){
+			throw std::domain_error("Unable to process NAN.");
+		}
 	    if (input <= sigmoidLow) return signedSigmoidTable[0];
 	    if (input >= sigmoidHigh) return signedSigmoidTable[SIGMOID_SIZE - 1];
 	    return signedSigmoidTable[(sigmoidOffset + (int)(input * RESOLUTION + 0.5))];

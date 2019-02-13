@@ -15,6 +15,8 @@
 #include "CE_Label.h"
 #include "CE_FinalNodeView.h"
 #include "CX_Debug.hpp"
+#include "CX_CppnType.hpp"
+#include <cmath>
 //#include "NEAT_Defines.h"
 //#include "NEAT_STL.h"
 
@@ -22,14 +24,11 @@
 class Node;
 class Edge;
 
-
-
-
 class Cppn : public QObject{
 	Q_OBJECT
 public:
 
-	Cppn():
+	Cppn(CppnType* cppnInfo = 0):
 		activationFunctions(0),
 		linkWeights(0),
 		lastTargets(0),
@@ -47,15 +46,26 @@ public:
 		_numberOfModules(0),
 		_maxId(0),
 	    _inputsOrdered(false),
-		_min_x(-1),
-		_max_x(1),
-		_min_y(-1),
-		_max_y(1),
-		width(IMAGE_WIDTH),
-		height(IMAGE_HEIGHT),
+//		_min_x(-1),
+//		_max_x(1),
+//		_min_y(-1),
+//		_max_y(1),
+//		width(IMAGE_WIDTH),
+//		height(IMAGE_HEIGHT),
+		_cppn_info(cppnInfo),
+		_coords_per_node(0),
 		_parent(-1),
 		_max_gen(-1)
 	{
+		if (cppnInfo == 0){
+			// TODO: Think of an elegant way to provide the default cppn type
+//			_cppn_info = new TwoDimCppnInfo;
+			_cppn_info = new DEFAULT_CPPN_TYPE;
+		}
+		if (_cppn_info != 0){
+			_cppn_info->claim(this);
+			_coords_per_node = _cppn_info->getCoordsPerNode();
+		}
 	    //Reserve space for the inputs
 	    //Exactly four inputs have to be provided through the addNode function
 	    //That have the XML labels:
@@ -86,14 +96,20 @@ public:
 		_numberOfModules(0),
 		_maxId(0),
 	    _inputsOrdered(false),
-		_min_x(-1),
-		_max_x(1),
-		_min_y(-1),
-		_max_y(1),
-		width(IMAGE_WIDTH),
-		height(IMAGE_HEIGHT)
+//		_min_x(-1),
+//		_max_x(1),
+//		_min_y(-1),
+//		_max_y(1),
+//		width(IMAGE_WIDTH),
+//		height(IMAGE_HEIGHT),
+		_cppn_info(0),
+		_coords_per_node(0)
 	{
 		copy(other);
+		if (_cppn_info != 0){
+			_cppn_info->claim(this);
+			_coords_per_node = _cppn_info->getCoordsPerNode();
+		}
 	}
 
 	~Cppn(){
@@ -113,6 +129,9 @@ public:
         foreach(Edge* edge, edges){
             delete edge;
         }
+        if (_cppn_info != 0){
+        	delete _cppn_info;
+        }
 	}
 
 	void copy(Cppn* other);
@@ -123,18 +142,24 @@ public:
 	void removeNode(Node* node);
 	void removeConnection(Edge* edge);
 
-	void setMinX(int min_x){_min_x = min_x;}
-	int getMinX(){ return _min_x;}
-	void setMaxX(int max_x){_max_x = max_x;}
-	int getMaxX(){ return _max_x;}
-	void setMinY(int min_y){_min_y = min_y;}
-	int getMinY(){ return _min_y;}
-	void setMaxY(int max_y){_max_y = max_y;}
-	int getMaxY(){ return _max_y;}
-	void setResX(int res_x){width = res_x;}
-	int getResX(){ return width;}
-	void setResY(int res_y){height = res_y;}
-	int getResY(){ return height;}
+//	void setMinX(int min_x){_min_x = min_x;}
+//	int getMinX(){ return _min_x;}
+//	void setMaxX(int max_x){_max_x = max_x;}
+//	int getMaxX(){ return _max_x;}
+//	void setMinY(int min_y){_min_y = min_y;}
+//	int getMinY(){ return _min_y;}
+//	void setMaxY(int max_y){_max_y = max_y;}
+//	int getMaxY(){ return _max_y;}
+//	void setResX(int res_x){
+//		width = res_x;
+//		_coords_per_node = width*height;
+//	}
+//	int getResX(){ return width;}
+//	void setResY(int res_y){
+//		height = res_y;
+//		_coords_per_node = width*height;
+//	}
+//	int getResY(){ return height;}
 
 	void rewireConnection(Edge* edge, Node* newSource, Node* newTarget);
 	bool connected(Node* source, Node* target);
@@ -155,6 +180,7 @@ public:
 	QSet<Node*> getPredecessors(Node* node);
 
 	void buildPhenotype();
+	inline void initInputs();
 	inline void updateNode(const size_t& node, const size_t& xy_index, const double& initialValue = 0);
 	inline void updateNode(const size_t& node);
 //	inline void updateLink(const size_t& node, const size_t& link, const size_t& xy_index);
@@ -196,9 +222,7 @@ public:
     //static const int height = IMAGE_HEIGHT;
 
     // Anhs Settings
-
-
-
+	CppnType* getCppnInfo(){return _cppn_info;}
 
 public slots:
 	void updateNode(Node* node);
@@ -229,6 +253,8 @@ private:
 	}
 
 	void swap(int index1, int index2);
+	void _initTwoDimensionalInputs();
+	void _initOneDimensionalInputs();
 
 	//Phenotype (maybe make a separate class for it?)
 	ActivationFunctionPt* activationFunctions;
@@ -263,12 +289,14 @@ private:
     id_t _maxId;
     bool _inputsOrdered;
 
-    int _min_x;
-    int _max_x;
-    int _min_y;
-    int _max_y;
-    int width;
-    int height;
+//    int _min_x;
+//    int _max_x;
+//    int _min_y;
+//    int _max_y;
+//    int width;
+//    int height;
+    CppnType* _cppn_info;
+    int _coords_per_node;
     int _parent;
     int _max_gen;
 };

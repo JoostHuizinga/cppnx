@@ -291,7 +291,11 @@ public:
         update();
     }
 
+#ifdef ONE_D_CPPN
+    static const int node_width = 80;
+#else
     static const int node_width = 40;
+#endif
     static const int node_height = 40;
     static const int half_width = 20;
     static const int half_height = 20;

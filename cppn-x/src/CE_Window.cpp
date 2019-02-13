@@ -456,25 +456,26 @@ Window::~Window(){
 
 void Window::createNew(){
     dbg::out(dbg::info, "window") << "Loading cppn" << std::endl;
-    QList<Node*> nodes;
-    id_t id = 0;
-    Node* in_x = new Node("0", util::toString(id++), XML_TYPE_INPUT, XML_LINEAR, INPUT_X);
-    Node* in_y = new Node("0", util::toString(id++), XML_TYPE_INPUT, XML_LINEAR, INPUT_Y);
-    Node* in_d = new Node("0", util::toString(id++), XML_TYPE_INPUT, XML_LINEAR, INPUT_D);
-    Node* in_b = new Node("0", util::toString(id++), XML_TYPE_INPUT, XML_LINEAR, INPUT_BIAS);
-    Node* out_ink = new Node("0", util::toString(id++), XML_TYPE_OUTPUT, XML_LINEAR, OUTPUT_INK);
-    nodes.push_back(in_x);
-    nodes.push_back(in_y);
-    nodes.push_back(in_d);
-    nodes.push_back(in_b);
-    nodes.push_back(out_ink);
-
-    QList<Edge*> edges;
-    edges.push_back(new Edge("0", util::toString(id++), in_x, out_ink));
-    edges.push_back(new Edge("0", util::toString(id++), in_y, out_ink));
-    edges.push_back(new Edge("0", util::toString(id++), in_d, out_ink));
-    edges.push_back(new Edge("0", util::toString(id++), in_b, out_ink));
-    cppnWidget->setCppn(nodes, edges);
+//    QList<Node*> nodes;
+//    id_t id = 0;
+//    Node* in_x = new Node("0", util::toString(id++), XML_TYPE_INPUT, XML_LINEAR, INPUT_X);
+//    Node* in_y = new Node("0", util::toString(id++), XML_TYPE_INPUT, XML_LINEAR, INPUT_Y);
+//    Node* in_d = new Node("0", util::toString(id++), XML_TYPE_INPUT, XML_LINEAR, INPUT_D);
+//    Node* in_b = new Node("0", util::toString(id++), XML_TYPE_INPUT, XML_LINEAR, INPUT_BIAS);
+//    Node* out_ink = new Node("0", util::toString(id++), XML_TYPE_OUTPUT, XML_LINEAR, OUTPUT_INK);
+//    nodes.push_back(in_x);
+//    nodes.push_back(in_y);
+//    nodes.push_back(in_d);
+//    nodes.push_back(in_b);
+//    nodes.push_back(out_ink);
+//
+//    QList<Edge*> edges;
+//    edges.push_back(new Edge("0", util::toString(id++), in_x, out_ink));
+//    edges.push_back(new Edge("0", util::toString(id++), in_y, out_ink));
+//    edges.push_back(new Edge("0", util::toString(id++), in_d, out_ink));
+//    edges.push_back(new Edge("0", util::toString(id++), in_b, out_ink));
+//    cppnWidget->setCppn(nodes, edges);
+    cppnWidget->newCppn();
 
     dbg::out(dbg::info, "window") << "Loading labels" << std::endl;
     QList<Label*> labels;
@@ -483,7 +484,7 @@ void Window::createNew(){
     dbg::out(dbg::info, "window") << "Loading nodeviews" << std::endl;
     QList<NodeView*> nodeviews;
     FinalNodeView* finalNodeview = new FinalNodeView();
-    finalNodeview->setValueNode(out_ink);
+    finalNodeview->setValueNode(cppnWidget->getCppn()->getOutputs().first());
     nodeviews.push_back(finalNodeview);
     nodeviewWidget->setNodeviews(nodeviews);
 

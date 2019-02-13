@@ -173,6 +173,7 @@ public:
     void addLegend(const QList<Label*>& labels);
     void removeLegend();
     Legend* getLegend();
+    void newCppn();
 
 public slots:
 	// Zoom functions

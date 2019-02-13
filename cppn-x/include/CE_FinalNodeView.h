@@ -100,6 +100,7 @@ private:
 	QSharedPointer<QImage> valueImage;
 	ColorMode colorMode;
 
+	size_t _coords_per_node;
 	size_t _node_x_res;
 	size_t _node_y_res;
 };
